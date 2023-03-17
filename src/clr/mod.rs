@@ -1,6 +1,6 @@
 use crate::primitives::{
-    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _MethodInfo,
-    _StringWriter, wrap_method_arguments, GUID, HRESULT,
+    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _Assembly,
+    _MethodInfo, _StringWriter, wrap_method_arguments, GUID, HRESULT,
 };
 use std::{ffi::c_void, ptr};
 use windows::Win32::System::Com::VARIANT;
@@ -43,17 +43,43 @@ impl Clr {
         })
     }
 
+    #[cfg(feature = "default-loader")]
+    pub fn context_only() -> Result<Clr, String> {
+        let create_interface = load_function("mscoree.dll", "CreateInterface")?;
+
+        Ok(Clr {
+            contents: vec![],
+            arguments: vec![],
+            create_interface,
+            context: None,
+            output_context: None,
+        })
+    }
+
     #[cfg(not(feature = "default-loader"))]
     pub fn new(
         contents: Vec<u8>,
         arguments: Vec<String>,
-        load_function: fn(&str, &str) -> Result<isize, String>,
+        load_function: fn() -> Result<isize, String>,
     ) -> Result<Clr, String> {
-        let create_interface = load_function("mscoree.dll", "CreateInterface")?;
+        let create_interface = load_function()?;
 
         Ok(Clr {
             contents,
             arguments,
+            create_interface,
+            context: None,
+            output_context: None,
+        })
+    }
+
+    #[cfg(not(feature = "default-loader"))]
+    pub fn context_only(load_function: fn() -> Result<isize, String>) -> Result<Clr, String> {
+        let create_interface = load_function()?;
+
+        Ok(Clr {
+            contents: vec![],
+            arguments: vec![],
             create_interface,
             context: None,
             output_context: None,
@@ -84,14 +110,14 @@ impl Clr {
 
         let set_out = unsafe { (*console).get_method("SetOut")? };
 
-        let old_console = unsafe { (*get_out).invoke_without_args()? };
+        let old_console = unsafe { (*get_out).invoke_without_args(None)? };
 
         let string_writer_instance =
             unsafe { (*assembly).create_instance("System.IO.StringWriter")? };
 
         let method_args = wrap_method_arguments(vec![string_writer_instance.clone()])?;
 
-        unsafe { (*set_out).invoke(method_args)? };
+        unsafe { (*set_out).invoke(method_args, None)? };
 
         self.output_context = Some(OutputContext {
             set_out,
@@ -111,7 +137,7 @@ impl Clr {
 
         let method_args = wrap_method_arguments(vec![context.original_stdout.clone()])?;
 
-        unsafe { (*(&context).set_out).invoke(method_args)? };
+        unsafe { (*(&context).set_out).invoke(method_args, None)? };
 
         Ok(())
     }

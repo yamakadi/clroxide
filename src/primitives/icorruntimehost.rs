@@ -12,65 +12,65 @@ pub struct ICorRuntimeHost {
 #[repr(C)]
 pub struct ICorRuntimeHostVtbl {
     pub parent: IUnknownVtbl,
-    pub CreateLogicalThreadState: unsafe extern "system" fn(This: *mut ICorRuntimeHost) -> HRESULT,
-    pub DeleteLogicalThreadState: unsafe extern "system" fn(This: *mut ICorRuntimeHost) -> HRESULT,
+    pub CreateLogicalThreadState: unsafe extern "system" fn(this: *mut ICorRuntimeHost) -> HRESULT,
+    pub DeleteLogicalThreadState: unsafe extern "system" fn(this: *mut ICorRuntimeHost) -> HRESULT,
     pub SwitchInLogicalThreadState:
-        unsafe extern "system" fn(This: *mut ICorRuntimeHost, pFiberCookie: *mut u32) -> HRESULT,
+        unsafe extern "system" fn(this: *mut ICorRuntimeHost, pFiberCookie: *mut u32) -> HRESULT,
     pub SwitchOutLogicalThreadState: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pFiberCookie: *mut *mut u32,
     ) -> HRESULT,
     pub LocksHeldByLogicalThread:
-        unsafe extern "system" fn(This: *mut ICorRuntimeHost, pCount: *mut u32) -> HRESULT,
+        unsafe extern "system" fn(this: *mut ICorRuntimeHost, pCount: *mut u32) -> HRESULT,
     pub MapFile: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         hFile: HANDLE,
         hMapAddress: *mut HINSTANCE,
     ) -> HRESULT,
     pub GetConfiguration: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pConfiguration: *mut *mut c_void,
     ) -> HRESULT,
-    pub Start: unsafe extern "system" fn(This: *mut ICorRuntimeHost) -> HRESULT,
-    pub Stop: unsafe extern "system" fn(This: *mut ICorRuntimeHost) -> HRESULT,
+    pub Start: unsafe extern "system" fn(this: *mut ICorRuntimeHost) -> HRESULT,
+    pub Stop: unsafe extern "system" fn(this: *mut ICorRuntimeHost) -> HRESULT,
     pub CreateDomain: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pwzFriendlyName: *const u16,
         pIdentityArray: *mut IUnknown,
         pAppDomain: *mut *mut IUnknown,
     ) -> HRESULT,
     pub GetDefaultDomain: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pAppDomain: *mut *mut IUnknown,
     ) -> HRESULT,
     pub EnumDomains:
-        unsafe extern "system" fn(This: *mut ICorRuntimeHost, hEnum: *mut *mut c_void) -> HRESULT,
+        unsafe extern "system" fn(this: *mut ICorRuntimeHost, hEnum: *mut *mut c_void) -> HRESULT,
     pub NextDomain: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         hEnum: *mut c_void,
         pAppDomain: *mut *mut IUnknown,
     ) -> HRESULT,
     pub CloseEnum:
-        unsafe extern "system" fn(This: *mut ICorRuntimeHost, hEnum: *mut c_void) -> HRESULT,
+        unsafe extern "system" fn(this: *mut ICorRuntimeHost, hEnum: *mut c_void) -> HRESULT,
     pub CreateDomainEx: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pwzFriendlyName: *const u16,
         pSetup: *mut IUnknown,
         pEvidence: *mut IUnknown,
         pAppDomain: *mut *mut IUnknown,
     ) -> HRESULT,
     pub CreateDomainSetup: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pAppDomain: *mut *mut IUnknown,
     ) -> HRESULT,
     pub CreateEvidence: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pEvidence: *mut *mut IUnknown,
     ) -> HRESULT,
     pub UnloadDomain:
-        unsafe extern "system" fn(This: *mut ICorRuntimeHost, pAppDomain: *mut IUnknown) -> HRESULT,
+        unsafe extern "system" fn(this: *mut ICorRuntimeHost, pAppDomain: *mut IUnknown) -> HRESULT,
     pub CurrentDomain: unsafe extern "system" fn(
-        This: *mut ICorRuntimeHost,
+        this: *mut ICorRuntimeHost,
         pAppDomain: *mut *mut IUnknown,
     ) -> HRESULT,
 }

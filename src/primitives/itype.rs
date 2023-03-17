@@ -1,4 +1,6 @@
-use crate::primitives::{IUnknown, IUnknownVtbl, Interface, _Assembly, _MethodInfo, GUID, HRESULT};
+use crate::primitives::{
+    IUnknown, IUnknownVtbl, Interface, _Assembly, _MethodInfo, empty_array, GUID, HRESULT,
+};
 use std::{
     ffi::{c_long, c_void},
     ops::Deref,
@@ -7,7 +9,7 @@ use std::{
 use windows::{
     core::BSTR,
     Win32::System::{
-        Com::{SAFEARRAY, VT_UNKNOWN},
+        Com::{SAFEARRAY, VARIANT, VT_UNKNOWN},
         Ole::{SafeArrayCreateVector, SafeArrayGetElement, SafeArrayGetLBound, SafeArrayGetUBound},
     },
 };
@@ -91,7 +93,16 @@ pub struct _TypeVtbl {
     pub InvokeMember: *const c_void,
     pub get_UnderlyingSystemType: *const c_void,
     pub InvokeMember_2: *const c_void,
-    pub InvokeMember_3: *const c_void,
+    pub InvokeMember_3: unsafe extern "system" fn(
+        this: *mut c_void,
+        name: *mut u16,
+        invokeAttr: BindingFlags,
+        Binder: *mut c_void,
+        Target: VARIANT,
+        args: *mut SAFEARRAY,
+        namedParameters: *mut SAFEARRAY,
+        pRetVal: *mut *mut VARIANT,
+    ) -> HRESULT,
     pub GetConstructor: *const c_void,
     pub GetConstructor_2: *const c_void,
     pub GetConstructor_3: *const c_void,
@@ -178,6 +189,142 @@ impl _Type {
         }
 
         Ok(buffer.to_string())
+    }
+
+    pub fn get_method(&self, name: &str) -> Result<*mut _MethodInfo, String> {
+        let mut dw = BSTR::from(name);
+
+        let mut method_ptr: *mut _MethodInfo = ptr::null_mut();
+        let hr = unsafe { (*self).GetMethod_6(dw.into_raw() as *mut _, &mut method_ptr) };
+
+        if hr.is_err() {
+            return Err(format!(
+                "Error while retrieving method `{}`: 0x{:x}",
+                name, hr.0
+            ));
+        }
+
+        if method_ptr.is_null() {
+            return Err(format!("Could not retrieve method `{}`", name));
+        }
+
+        Ok(method_ptr)
+    }
+
+    pub fn get_method_with_signature(&self, signature: &str) -> Result<*mut _MethodInfo, String> {
+        let methods = self.get_methods()?;
+
+        for method in methods {
+            let method_name = unsafe { (*method).to_string()? };
+
+            if &method_name == signature {
+                return Ok(method);
+            }
+        }
+
+        Err(format!(
+            "Could not find a method with the given signature: {}",
+            signature
+        ))
+    }
+
+    pub fn get_methods(&self) -> Result<Vec<*mut _MethodInfo>, String> {
+        let mut results: Vec<*mut _MethodInfo> = vec![];
+
+        let mut safe_array_ptr: *mut SAFEARRAY =
+            unsafe { SafeArrayCreateVector(VT_UNKNOWN, 0, 255) };
+
+        let hr = unsafe { (*self).GetMethods_2(&mut safe_array_ptr) };
+
+        if hr.is_err() {
+            return Err(format!("Error while retrieving methods: 0x{:x}", hr.0));
+        }
+
+        let ubound = unsafe { SafeArrayGetUBound(safe_array_ptr, 1) }.unwrap_or(0);
+
+        for i in 0..ubound {
+            let indices: [i32; 1] = [i as _];
+            let mut variant: *mut _MethodInfo = ptr::null_mut();
+            let pv = &mut variant as *mut _ as *mut c_void;
+
+            match unsafe { SafeArrayGetElement(safe_array_ptr, indices.as_ptr(), pv) } {
+                Ok(_) => {},
+                Err(e) => return Err(format!("Could not access safe array: {:?}", e.code())),
+            }
+
+            if !pv.is_null() {
+                results.push(variant)
+            }
+        }
+
+        Ok(results)
+    }
+
+    pub fn invoke_static_method(
+        &self,
+        instance: VARIANT,
+        method: String,
+        args: *mut SAFEARRAY,
+    ) -> Result<VARIANT, String> {
+        self.invoke_member(
+            instance.clone(),
+            method,
+            BindingFlags_Public | BindingFlags_Static | BindingFlags_InvokeMethod,
+            args,
+        )
+    }
+
+    pub fn invoke_instance_method(
+        &self,
+        instance: VARIANT,
+        method: String,
+        args: *mut SAFEARRAY,
+    ) -> Result<VARIANT, String> {
+        self.invoke_member(
+            instance.clone(),
+            method,
+            BindingFlags_Public | BindingFlags_InvokeMethod,
+            args,
+        )
+    }
+
+    pub fn invoke_member(
+        &self,
+        instance: VARIANT,
+        method: String,
+        flags: BindingFlags,
+        args: *mut SAFEARRAY,
+    ) -> Result<VARIANT, String> {
+        let mut method_name = BSTR::from(method.clone());
+        let mut binder: *mut c_void = ptr::null_mut();
+        let mut named_params = empty_array();
+        let mut return_ptr: *mut VARIANT = ptr::null_mut();
+
+        let hr = unsafe {
+            ((*self.vtable).InvokeMember_3)(
+                self as *const _ as *mut _,
+                method_name.into_raw() as *mut _,
+                flags,
+                binder,
+                instance,
+                args,
+                named_params,
+                &mut return_ptr,
+            )
+        };
+
+        if hr.is_err() {
+            return Err(format!(
+                "Error while invoking method `{}`: 0x{:x}",
+                method, hr.0
+            ));
+        }
+
+        if return_ptr.is_null() {
+            return Ok(VARIANT::default());
+        }
+
+        Ok(unsafe { (*return_ptr).clone() })
     }
 
     #[inline]
@@ -293,58 +440,6 @@ impl _Type {
     #[inline]
     pub unsafe fn GetMethods_2(&self, pRetVal: *mut *mut SAFEARRAY) -> HRESULT {
         ((*self.vtable).GetMethods_2)(self as *const _ as *mut _, pRetVal)
-    }
-
-    pub fn get_method(&self, name: &str) -> Result<*mut _MethodInfo, String> {
-        let mut dw = BSTR::from(name);
-
-        let mut method_ptr: *mut _MethodInfo = ptr::null_mut();
-        let hr = unsafe { (*self).GetMethod_6(dw.into_raw() as *mut _, &mut method_ptr) };
-
-        if hr.is_err() {
-            return Err(format!(
-                "Error while retrieving method `{}`: 0x{:x}",
-                name, hr.0
-            ));
-        }
-
-        if method_ptr.is_null() {
-            return Err(format!("Could not retrieve method `{}`", name));
-        }
-
-        Ok(method_ptr)
-    }
-
-    pub fn get_methods(&self) -> Result<Vec<*mut _MethodInfo>, String> {
-        let mut results: Vec<*mut _MethodInfo> = vec![];
-
-        let mut safe_array_ptr: *mut SAFEARRAY =
-            unsafe { SafeArrayCreateVector(VT_UNKNOWN, 0, 255) };
-
-        let hr = unsafe { (*self).GetMethods_2(&mut safe_array_ptr) };
-
-        if hr.is_err() {
-            return Err(format!("Error while retrieving methods: 0x{:x}", hr.0));
-        }
-
-        let ubound = unsafe { SafeArrayGetUBound(safe_array_ptr, 1) }.unwrap_or(0);
-
-        for i in 0..ubound {
-            let indices: [i32; 1] = [i as _];
-            let mut variant: *mut _MethodInfo = ptr::null_mut();
-            let pv = &mut variant as *mut _ as *mut c_void;
-
-            match unsafe { SafeArrayGetElement(safe_array_ptr, indices.as_ptr(), pv) } {
-                Ok(_) => {},
-                Err(e) => return Err(format!("Could not access safe array: {:?}", e.code())),
-            }
-
-            if !pv.is_null() {
-                results.push(variant)
-            }
-        }
-
-        Ok(results)
     }
 }
 

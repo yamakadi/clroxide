@@ -69,7 +69,11 @@ pub struct _MethodInfoVtbl {
 }
 
 impl _MethodInfo {
-    pub fn invoke(&self, args: *mut SAFEARRAY) -> Result<VARIANT, String> {
+    pub fn invoke(
+        &self,
+        args: *mut SAFEARRAY,
+        instance: Option<VARIANT>,
+    ) -> Result<VARIANT, String> {
         let args_len = get_array_length(args);
         let parameter_count = unsafe { (*self).get_parameter_count()? };
 
@@ -81,7 +85,11 @@ impl _MethodInfo {
         }
 
         let mut return_value: VARIANT = unsafe { std::mem::zeroed() };
-        let object: VARIANT = unsafe { std::mem::zeroed() };
+
+        let object: VARIANT = match instance {
+            None => unsafe { std::mem::zeroed() },
+            Some(i) => i,
+        };
 
         let hr = unsafe { (*self).Invoke_3(object, args, &mut return_value) };
 
@@ -92,10 +100,10 @@ impl _MethodInfo {
         Ok(return_value)
     }
 
-    pub fn invoke_without_args(&self) -> Result<VARIANT, String> {
+    pub fn invoke_without_args(&self, instance: Option<VARIANT>) -> Result<VARIANT, String> {
         let method_args = empty_array();
 
-        unsafe { (*self).invoke(method_args) }
+        unsafe { (*self).invoke(method_args, instance) }
     }
 
     pub fn get_parameter_count(&self) -> Result<i32, String> {

@@ -93,14 +93,14 @@ impl _Assembly {
         let signature = unsafe { (*entrypoint).to_string()? };
 
         if signature.ends_with("Main()") {
-            return unsafe { (*entrypoint).invoke_without_args() };
+            return unsafe { (*entrypoint).invoke_without_args(None) };
         }
 
         if signature.ends_with("Main(System.String[])") {
             let args_variant = wrap_strings_in_array(args)?;
             let mut method_args = wrap_method_arguments(vec![args_variant])?;
 
-            return unsafe { (*entrypoint).invoke(method_args) };
+            return unsafe { (*entrypoint).invoke(method_args, None) };
         }
 
         Err(format!(

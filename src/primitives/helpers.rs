@@ -7,8 +7,8 @@ use windows::{
             VT_ARRAY, VT_BSTR, VT_UI1, VT_VARIANT,
         },
         Ole::{
-            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetUBound,
-            SafeArrayPutElement, SafeArrayUnaccessData,
+            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetDim,
+            SafeArrayGetLBound, SafeArrayGetUBound, SafeArrayPutElement, SafeArrayUnaccessData,
         },
     },
 };
@@ -55,6 +55,24 @@ pub fn empty_array() -> *mut SAFEARRAY {
     unsafe { SafeArrayCreateVector(VT_VARIANT, 0, 0) }
 }
 
+pub fn wrap_string_in_variant(string: &str) -> VARIANT {
+    let mut inner = BSTR::from(string);
+
+    VARIANT {
+        Anonymous: VARIANT_0 {
+            Anonymous: ManuallyDrop::new(VARIANT_0_0 {
+                vt: VT_BSTR,
+                wReserved1: 0,
+                wReserved2: 0,
+                wReserved3: 0,
+                Anonymous: VARIANT_0_0_0 {
+                    bstrVal: ManuallyDrop::new(inner),
+                },
+            }),
+        },
+    }
+}
+
 pub fn wrap_strings_in_array(strings: &[String]) -> Result<VARIANT, String> {
     let mut inner = vec![];
 
@@ -95,7 +113,8 @@ pub fn wrap_strings_in_array(strings: &[String]) -> Result<VARIANT, String> {
 }
 
 pub fn wrap_method_arguments(arguments: Vec<VARIANT>) -> Result<*mut SAFEARRAY, String> {
-    let mut variant_array_ptr: *mut SAFEARRAY = unsafe { SafeArrayCreateVector(VT_VARIANT, 0, 1) };
+    let mut variant_array_ptr: *mut SAFEARRAY =
+        unsafe { SafeArrayCreateVector(VT_VARIANT, 0, arguments.len() as u32) };
 
     for i in 0..arguments.len() {
         let indices: [i32; 1] = [i as _];

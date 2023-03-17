@@ -26,6 +26,8 @@ How can I convince Cas to dabble with rust if he can't replicate this!? My work 
 
 Streaming the output is not currently supported, although I'm sure the CLR wrangling magic used for redirecting the output could be a good guide for anyone willing to implement it.
 
+### Run an assembly and capture its output
+
 ```rust
 use clroxide::clr::Clr;
 use std::{env, fs, process::exit};
@@ -34,9 +36,9 @@ fn main() -> Result<(), String> {
     let (path, args) = prepare_args();
 
     let contents = fs::read(path).expect("Unable to read file");
-    let mut context = Clr::new(contents, args)?;
+    let mut clr = Clr::new(contents, args)?;
 
-    let results = context.run()?;
+    let results = clr.run()?;
 
     println!("[*] Results:\n\n{}", results);
 
@@ -63,5 +65,47 @@ fn prepare_args() -> (String, Vec<String>) {
     println!("[+] Running `{}` with given args: {:?}", path, command_args);
 
     return (path, command_args);
+}
+```
+
+### Use a custom loader for `mscoree.dll`
+
+We need to load the `CreateInterface` function from `mscoree.dll` to kickstart the CLR. You can provide custom loader by disabling default features.
+
+First, add `default-features = false` to your dependency declaration.
+
+```toml
+clroxide = { version = "1.0.1", default-features = false }
+```
+
+And then provide a function with the signature `fn() -> Result<isize, String>` that returns a pointer to the `CreateInterface` function when creating the Clr instance.
+
+```rust
+litcrypt::use_litcrypt!();
+
+fn load_function() -> Result<isize, String> {
+  let library = custom_load_library_a(lc!("mscoree.dll\0"));
+
+  if library == 0 {
+    return Err("Failed".into());
+  }
+  
+  let function = custom_get_process_address(library, lc!("CreateInterface\0"));
+  
+  if function == 0 {
+    return Err("Failed".into());
+  }
+  
+  Ok(function)
+}
+
+fn main() -> Result<(), String> {
+ 
+  // ...
+
+  let mut context = Clr::new(contents, args, load_function)?;
+
+  // ...
+  
 }
 ```

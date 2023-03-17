@@ -5,9 +5,9 @@ fn main() -> Result<(), String> {
     let (path, args) = prepare_args();
 
     let contents = fs::read(path).expect("Unable to read file");
-    let mut context = Clr::new(contents, args)?;
+    let mut clr = Clr::new(contents, args)?;
 
-    let results = context.run()?;
+    let results = clr.run()?;
 
     println!("[*] Results:\n\n{}", results);
 
