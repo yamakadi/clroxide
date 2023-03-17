@@ -1,8 +1,6 @@
 use clroxide::{
     clr::Clr,
-    primitives::{
-        _Assembly, empty_array, wrap_method_arguments, wrap_string_in_variant,
-    },
+    primitives::{_Assembly, empty_array, wrap_method_arguments, wrap_string_in_variant},
 };
 use windows::Win32::System::Com::VARIANT;
 
