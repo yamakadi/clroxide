@@ -36,13 +36,11 @@ impl ICLRMetaHost {
     pub fn new(clr_create_instance: CLRCreateInstance) -> Result<*mut ICLRMetaHost, String> {
         let mut ppv: *mut ICLRMetaHost = ptr::null_mut();
 
-        let hr = unsafe {
-            clr_create_instance(
-                &ICLRMetaHost::CLSID,
-                &ICLRMetaHost::IID,
-                &mut ppv as *mut *mut _ as *mut *mut c_void,
-            )
-        };
+        let hr = clr_create_instance(
+            &ICLRMetaHost::CLSID,
+            &ICLRMetaHost::IID,
+            &mut ppv as *mut *mut _ as *mut *mut c_void,
+        );
 
         if hr.is_err() {
             return Err(format!("{:?}", hr));

@@ -1,6 +1,6 @@
 use crate::primitives::{
-    itype::_Type, IUnknown, IUnknownVtbl, Interface, _MethodInfo,
-    wrap_method_arguments, wrap_strings_in_array, GUID, HRESULT,
+    itype::_Type, IUnknown, IUnknownVtbl, Interface, _MethodInfo, wrap_method_arguments,
+    wrap_strings_in_array, GUID, HRESULT,
 };
 use std::{
     ffi::{c_long, c_void},
@@ -89,7 +89,7 @@ pub struct _AssemblyVtbl {
 
 impl _Assembly {
     pub fn run_entrypoint(&self, args: &[String]) -> Result<VARIANT, String> {
-        let entrypoint = unsafe { (*self).get_entrypoint()? };
+        let entrypoint = (*self).get_entrypoint()?;
         let signature = unsafe { (*entrypoint).to_string()? };
 
         if signature.ends_with("Main()") {

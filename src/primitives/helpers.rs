@@ -7,7 +7,8 @@ use windows::{
             VT_ARRAY, VT_BSTR, VT_UI1, VT_VARIANT,
         },
         Ole::{
-            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetUBound, SafeArrayPutElement, SafeArrayUnaccessData,
+            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetUBound,
+            SafeArrayPutElement, SafeArrayUnaccessData,
         },
     },
 };

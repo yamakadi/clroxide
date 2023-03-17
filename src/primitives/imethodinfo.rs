@@ -9,7 +9,7 @@ use windows::{
     core::BSTR,
     Win32::System::{
         Com::{SAFEARRAY, VARIANT, VT_UNKNOWN},
-        Ole::{SafeArrayCreateVector},
+        Ole::SafeArrayCreateVector,
     },
 };
 
@@ -75,7 +75,7 @@ impl _MethodInfo {
         instance: Option<VARIANT>,
     ) -> Result<VARIANT, String> {
         let args_len = get_array_length(args);
-        let parameter_count = unsafe { (*self).get_parameter_count()? };
+        let parameter_count = (*self).get_parameter_count()?;
 
         if args_len != parameter_count {
             return Err(format!(
@@ -103,7 +103,7 @@ impl _MethodInfo {
     pub fn invoke_without_args(&self, instance: Option<VARIANT>) -> Result<VARIANT, String> {
         let method_args = empty_array();
 
-        unsafe { (*self).invoke(method_args, instance) }
+        (*self).invoke(method_args, instance)
     }
 
     pub fn get_parameter_count(&self) -> Result<i32, String> {

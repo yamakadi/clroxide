@@ -269,7 +269,7 @@ impl _Type {
         self.invoke_member(
             instance.clone(),
             method,
-            BindingFlags_Public | BindingFlags_Static | BindingFlags_InvokeMethod,
+            BINDING_FLAGS_PUBLIC | BINDING_FLAGS_STATIC | BINDING_FLAGS_INVOKE_METHOD,
             args,
         )
     }
@@ -283,7 +283,7 @@ impl _Type {
         self.invoke_member(
             instance.clone(),
             method,
-            BindingFlags_Public | BindingFlags_InvokeMethod,
+            BINDING_FLAGS_PUBLIC | BINDING_FLAGS_INVOKE_METHOD,
             args,
         )
     }
@@ -465,23 +465,23 @@ impl Interface for _Type {
 }
 
 pub type BindingFlags = u32;
-pub const BindingFlags_Default: BindingFlags = 0;
-pub const BindingFlags_IgnoreCase: BindingFlags = 1;
-pub const BindingFlags_DeclaredOnly: BindingFlags = 2;
-pub const BindingFlags_Instance: BindingFlags = 4;
-pub const BindingFlags_Static: BindingFlags = 8;
-pub const BindingFlags_Public: BindingFlags = 16;
-pub const BindingFlags_NonPublic: BindingFlags = 32;
-pub const BindingFlags_FlattenHierarchy: BindingFlags = 64;
-pub const BindingFlags_InvokeMethod: BindingFlags = 256;
-pub const BindingFlags_CreateInstance: BindingFlags = 512;
-pub const BindingFlags_GetField: BindingFlags = 1024;
-pub const BindingFlags_SetField: BindingFlags = 2048;
-pub const BindingFlags_GetProperty: BindingFlags = 4096;
-pub const BindingFlags_SetProperty: BindingFlags = 8192;
-pub const BindingFlags_PutDispProperty: BindingFlags = 16384;
-pub const BindingFlags_PutRefDispProperty: BindingFlags = 32768;
-pub const BindingFlags_ExactBinding: BindingFlags = 65536;
-pub const BindingFlags_SuppressChangeType: BindingFlags = 131072;
-pub const BindingFlags_OptionalParamBinding: BindingFlags = 262144;
-pub const BindingFlags_IgnoreReturn: BindingFlags = 16777216;
+pub const BINDING_FLAGS_DEFAULT: BindingFlags = 0;
+pub const BINDING_FLAGS_IGNORE_CASE: BindingFlags = 1;
+pub const BINDING_FLAGS_DECLARED_ONLY: BindingFlags = 2;
+pub const BINDING_FLAGS_INSTANCE: BindingFlags = 4;
+pub const BINDING_FLAGS_STATIC: BindingFlags = 8;
+pub const BINDING_FLAGS_PUBLIC: BindingFlags = 16;
+pub const BINDING_FLAGS_NON_PUBLIC: BindingFlags = 32;
+pub const BINDING_FLAGS_FLATTEN_HIERARCHY: BindingFlags = 64;
+pub const BINDING_FLAGS_INVOKE_METHOD: BindingFlags = 256;
+pub const BINDING_FLAGS_CREATE_INSTANCE: BindingFlags = 512;
+pub const BINDING_FLAGS_GET_FIELD: BindingFlags = 1024;
+pub const BINDING_FLAGS_SET_FIELD: BindingFlags = 2048;
+pub const BINDING_FLAGS_GET_PROPERTY: BindingFlags = 4096;
+pub const BINDING_FLAGS_SET_PROPERTY: BindingFlags = 8192;
+pub const BINDING_FLAGS_PUT_DISP_PROPERTY: BindingFlags = 16384;
+pub const BINDING_FLAGS_PUT_REF_DISP_PROPERTY: BindingFlags = 32768;
+pub const BINDING_FLAGS_EXACT_BINDING: BindingFlags = 65536;
+pub const BINDING_FLAGS_SUPPRESS_CHANGE_TYPE: BindingFlags = 131072;
+pub const BINDING_FLAGS_OPTIONAL_PARAM_BINDING: BindingFlags = 262144;
+pub const BINDING_FLAGS_IGNORE_RETURN: BindingFlags = 16777216;
