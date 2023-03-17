@@ -22,11 +22,13 @@ How can I convince Cas to dabble with rust if he can't replicate this!? My work 
 
 ## Usage
 
-`ClrOxide` will load the CLR in the current process, resolve `mscorlib` and redirect the output for `System.Console`, finally loading and running your executable and returning its output as a string.  
-
-Streaming the output is not currently supported, although I'm sure the CLR wrangling magic used for redirecting the output could be a good guide for anyone willing to implement it.
+You can find more examples in the [`examples/`](examples) folder.
 
 ### Run an assembly and capture its output
+
+`ClrOxide` will load the CLR in the current process, resolve `mscorlib` and redirect the output for `System.Console`, finally loading and running your executable and returning its output as a string.
+
+Streaming the output is not currently supported, although I'm sure the CLR wrangling magic used for redirecting the output could be a good guide for anyone willing to implement it.
 
 ```rust
 use clroxide::clr::Clr;
