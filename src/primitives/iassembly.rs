@@ -1,5 +1,5 @@
 use crate::primitives::{
-    itype::_Type, IUnknown, IUnknownVtbl, Interface, _MethodInfo, empty_array,
+    itype::_Type, IUnknown, IUnknownVtbl, Interface, _MethodInfo,
     wrap_method_arguments, wrap_strings_in_array, GUID, HRESULT,
 };
 use std::{
@@ -11,7 +11,7 @@ use windows::{
     core::BSTR,
     Win32::System::{
         Com::{SAFEARRAY, VARIANT, VT_UNKNOWN},
-        Ole::{SafeArrayCreateVector, SafeArrayGetElement, SafeArrayGetLBound, SafeArrayGetUBound},
+        Ole::{SafeArrayCreateVector, SafeArrayGetElement, SafeArrayGetUBound},
     },
 };
 
@@ -98,7 +98,7 @@ impl _Assembly {
 
         if signature.ends_with("Main(System.String[])") {
             let args_variant = wrap_strings_in_array(args)?;
-            let mut method_args = wrap_method_arguments(vec![args_variant])?;
+            let method_args = wrap_method_arguments(vec![args_variant])?;
 
             return unsafe { (*entrypoint).invoke(method_args, None) };
         }
@@ -198,7 +198,7 @@ impl _Assembly {
     }
 
     pub fn create_instance(&self, name: &str) -> Result<VARIANT, String> {
-        let mut dw = BSTR::from(name);
+        let dw = BSTR::from(name);
 
         let mut instance: VARIANT = VARIANT::default();
         let hr = unsafe { (*self).CreateInstance(dw.into_raw() as *mut _, &mut instance) };
@@ -214,7 +214,7 @@ impl _Assembly {
     }
 
     pub fn get_type(&self, name: &str) -> Result<*mut _Type, String> {
-        let mut dw = BSTR::from(name);
+        let dw = BSTR::from(name);
 
         let mut type_ptr: *mut _Type = ptr::null_mut();
         let hr = unsafe { (*self).GetType_2(dw.into_raw() as *mut _, &mut type_ptr) };

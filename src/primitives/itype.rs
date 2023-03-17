@@ -10,7 +10,7 @@ use windows::{
     core::BSTR,
     Win32::System::{
         Com::{SAFEARRAY, VARIANT, VT_UNKNOWN},
-        Ole::{SafeArrayCreateVector, SafeArrayGetElement, SafeArrayGetLBound, SafeArrayGetUBound},
+        Ole::{SafeArrayCreateVector, SafeArrayGetElement, SafeArrayGetUBound},
     },
 };
 
@@ -192,7 +192,7 @@ impl _Type {
     }
 
     pub fn get_method(&self, name: &str) -> Result<*mut _MethodInfo, String> {
-        let mut dw = BSTR::from(name);
+        let dw = BSTR::from(name);
 
         let mut method_ptr: *mut _MethodInfo = ptr::null_mut();
         let hr = unsafe { (*self).GetMethod_6(dw.into_raw() as *mut _, &mut method_ptr) };
@@ -295,9 +295,9 @@ impl _Type {
         flags: BindingFlags,
         args: *mut SAFEARRAY,
     ) -> Result<VARIANT, String> {
-        let mut method_name = BSTR::from(method.clone());
-        let mut binder: *mut c_void = ptr::null_mut();
-        let mut named_params = empty_array();
+        let method_name = BSTR::from(method.clone());
+        let binder: *mut c_void = ptr::null_mut();
+        let named_params = empty_array();
         let mut return_ptr: *mut VARIANT = ptr::null_mut();
 
         let hr = unsafe {

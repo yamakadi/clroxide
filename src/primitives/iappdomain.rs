@@ -93,7 +93,7 @@ pub struct _AppDomainVtbl {
 
 impl _AppDomain {
     pub fn load_library(&self, library: &str) -> Result<*mut _Assembly, String> {
-        let mut library_buffer = BSTR::from(library);
+        let library_buffer = BSTR::from(library);
 
         let mut library_ptr: *mut _Assembly = ptr::null_mut();
 

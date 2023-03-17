@@ -9,7 +9,7 @@ use windows::{
     core::BSTR,
     Win32::System::{
         Com::{SAFEARRAY, VARIANT, VT_UNKNOWN},
-        Ole::{SafeArrayCreateVector, SafeArrayGetLBound, SafeArrayGetUBound},
+        Ole::{SafeArrayCreateVector},
     },
 };
 

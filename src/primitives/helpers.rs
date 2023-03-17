@@ -7,8 +7,7 @@ use windows::{
             VT_ARRAY, VT_BSTR, VT_UI1, VT_VARIANT,
         },
         Ole::{
-            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetDim,
-            SafeArrayGetLBound, SafeArrayGetUBound, SafeArrayPutElement, SafeArrayUnaccessData,
+            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetUBound, SafeArrayPutElement, SafeArrayUnaccessData,
         },
     },
 };
@@ -19,7 +18,7 @@ pub fn prepare_assembly(bytes: &[u8]) -> Result<*mut SAFEARRAY, String> {
         lLbound: 0,
     };
 
-    let mut safe_array_ptr: *mut SAFEARRAY = unsafe { SafeArrayCreate(VT_UI1, 1, &mut bounds) };
+    let safe_array_ptr: *mut SAFEARRAY = unsafe { SafeArrayCreate(VT_UI1, 1, &mut bounds) };
     let mut pv_data: *mut c_void = ptr::null_mut();
 
     match unsafe { SafeArrayAccessData(safe_array_ptr, &mut pv_data) } {
@@ -56,7 +55,7 @@ pub fn empty_array() -> *mut SAFEARRAY {
 }
 
 pub fn wrap_string_in_variant(string: &str) -> VARIANT {
-    let mut inner = BSTR::from(string);
+    let inner = BSTR::from(string);
 
     VARIANT {
         Anonymous: VARIANT_0 {
@@ -80,7 +79,7 @@ pub fn wrap_strings_in_array(strings: &[String]) -> Result<VARIANT, String> {
         inner.push(BSTR::from(string).into_raw())
     }
 
-    let mut safe_array_ptr: *mut SAFEARRAY =
+    let safe_array_ptr: *mut SAFEARRAY =
         unsafe { SafeArrayCreateVector(VT_BSTR, 0, inner.len() as u32) };
 
     for i in 0..inner.len() {
@@ -113,7 +112,7 @@ pub fn wrap_strings_in_array(strings: &[String]) -> Result<VARIANT, String> {
 }
 
 pub fn wrap_method_arguments(arguments: Vec<VARIANT>) -> Result<*mut SAFEARRAY, String> {
-    let mut variant_array_ptr: *mut SAFEARRAY =
+    let variant_array_ptr: *mut SAFEARRAY =
         unsafe { SafeArrayCreateVector(VT_VARIANT, 0, arguments.len() as u32) };
 
     for i in 0..arguments.len() {

@@ -1,5 +1,5 @@
 use crate::primitives::{
-    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _Assembly,
+    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain,
     _MethodInfo, _StringWriter, wrap_method_arguments, GUID, HRESULT,
 };
 use std::{ffi::c_void, ptr};
@@ -149,7 +149,7 @@ impl Clr {
 
         let context = self.output_context.as_ref().unwrap();
 
-        let mut dispatchable: &*mut IUnknown = unsafe {
+        let dispatchable: &*mut IUnknown = unsafe {
             std::mem::transmute(
                 context
                     .redirected_stdout
@@ -219,7 +219,7 @@ impl Clr {
         let create_interface: CreateInterface =
             unsafe { std::mem::transmute(self.create_interface) };
 
-        let mut host: *mut ICLRMetaHost = ICLRMetaHost::new(create_interface)?;
+        let host: *mut ICLRMetaHost = ICLRMetaHost::new(create_interface)?;
 
         return Ok(host);
     }
