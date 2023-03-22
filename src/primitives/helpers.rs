@@ -12,6 +12,7 @@ use windows::{
         },
     },
 };
+use windows::Win32::System::Ole::SafeArrayGetLBound;
 
 pub fn prepare_assembly(bytes: &[u8]) -> Result<*mut SAFEARRAY, String> {
     let mut bounds = SAFEARRAYBOUND {
@@ -48,7 +49,13 @@ pub fn prepare_assembly(bytes: &[u8]) -> Result<*mut SAFEARRAY, String> {
 }
 
 pub fn get_array_length(array_ptr: *mut SAFEARRAY) -> i32 {
-    unsafe { SafeArrayGetUBound(array_ptr, 1) }.unwrap_or(0)
+    let upper = unsafe { SafeArrayGetUBound(array_ptr, 1) }.unwrap_or(0);
+    let lower = unsafe { SafeArrayGetLBound(array_ptr, 1) }.unwrap_or(0);
+
+    match upper - lower {
+        0 => 0,
+        delta => delta + 1
+    }
 }
 
 pub fn empty_array() -> *mut SAFEARRAY {
