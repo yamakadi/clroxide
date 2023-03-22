@@ -8,7 +8,7 @@ documentation = "https://docs.rs/clroxide"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/yamakadi/clroxide"
-version = "1.0.4"
+version = "1.0.5"
 
 [lib]
 crate-type = ["lib", "staticlib"]
