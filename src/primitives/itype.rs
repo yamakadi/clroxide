@@ -1,6 +1,4 @@
-use crate::primitives::{
-    IUnknown, IUnknownVtbl, Interface, _Assembly, _MethodInfo, empty_array, GUID, HRESULT,
-};
+use crate::primitives::{IUnknown, IUnknownVtbl, Interface, _Assembly, _MethodInfo, empty_variant_array, GUID, HRESULT, _PropertyInfo};
 use std::{
     ffi::{c_long, c_void},
     ops::Deref,
@@ -85,9 +83,18 @@ pub struct _TypeVtbl {
     ) -> HRESULT,
     pub GetField: *const c_void,
     pub GetFields: *const c_void,
-    pub GetProperty: *const c_void,
+    pub GetProperty: unsafe extern "system" fn(
+        this: *mut c_void,
+        name: *mut u16,
+        bindingAttr: BindingFlags,
+        pRetVal: *mut *mut _PropertyInfo,
+    ) -> HRESULT,
     pub GetProperty_2: *const c_void,
-    pub GetProperties: *const c_void,
+    pub GetProperties: unsafe extern "system" fn(
+        this: *mut c_void,
+        bindingAttr: BindingFlags,
+        pRetVal: *mut *mut SAFEARRAY,
+    ) -> HRESULT,
     pub GetMember_2: *const c_void,
     pub GetMembers: *const c_void,
     pub InvokeMember: *const c_void,
@@ -136,9 +143,21 @@ pub struct _TypeVtbl {
     pub GetProperty_3: *const c_void,
     pub GetProperty_4: *const c_void,
     pub GetProperty_5: *const c_void,
-    pub GetProperty_6: *const c_void,
-    pub GetProperty_7: *const c_void,
-    pub GetProperties_2: *const c_void,
+    pub GetProperty_6: unsafe extern "system" fn(
+        this: *mut c_void,
+        name: *mut u16,
+        returnType: *mut _Type,
+        pRetVal: *mut *mut _PropertyInfo,
+    ) -> HRESULT,
+    pub GetProperty_7: unsafe extern "system" fn(
+        this: *mut c_void,
+        name: *mut u16,
+        pRetVal: *mut *mut _PropertyInfo,
+    ) -> HRESULT,
+    pub GetProperties_2: unsafe extern "system" fn(
+        this: *mut c_void,
+        pRetVal: *mut *mut SAFEARRAY,
+    ) -> HRESULT,
     pub GetNestedTypes_2: *const c_void,
     pub GetNestedType_2: *const c_void,
     pub GetMember_3: *const c_void,
@@ -260,6 +279,58 @@ impl _Type {
         Ok(results)
     }
 
+    pub fn get_property(&self, name: &str) -> Result<*mut _PropertyInfo, String> {
+        let dw = BSTR::from(name);
+
+        let mut property_ptr: *mut _PropertyInfo = ptr::null_mut();
+        let hr = unsafe { (*self).GetProperty_7(dw.into_raw() as *mut _, &mut property_ptr) };
+
+        if hr.is_err() {
+            return Err(format!(
+                "Error while retrieving method `{}`: 0x{:x}",
+                name, hr.0
+            ));
+        }
+
+        if property_ptr.is_null() {
+            return Err(format!("Could not retrieve method `{}`", name));
+        }
+
+        Ok(property_ptr)
+    }
+
+    pub fn get_properties(&self) -> Result<Vec<*mut _PropertyInfo>, String> {
+        let mut results: Vec<*mut _PropertyInfo> = vec![];
+
+        let mut safe_array_ptr: *mut SAFEARRAY =
+            unsafe { SafeArrayCreateVector(VT_UNKNOWN, 0, 255) };
+
+        let hr = unsafe { (*self).GetProperties_2(&mut safe_array_ptr) };
+
+        if hr.is_err() {
+            return Err(format!("Error while retrieving methods: 0x{:x}", hr.0));
+        }
+
+        let ubound = unsafe { SafeArrayGetUBound(safe_array_ptr, 1) }.unwrap_or(0);
+
+        for i in 0..ubound {
+            let indices: [i32; 1] = [i as _];
+            let mut variant: *mut _PropertyInfo = ptr::null_mut();
+            let pv = &mut variant as *mut _ as *mut c_void;
+
+            match unsafe { SafeArrayGetElement(safe_array_ptr, indices.as_ptr(), pv) } {
+                Ok(_) => {},
+                Err(e) => return Err(format!("Could not access safe array: {:?}", e.code())),
+            }
+
+            if !pv.is_null() {
+                results.push(variant)
+            }
+        }
+
+        Ok(results)
+    }
+
     pub fn invoke_static_method(
         &self,
         instance: VARIANT,
@@ -297,7 +368,7 @@ impl _Type {
     ) -> Result<VARIANT, String> {
         let method_name = BSTR::from(method.clone());
         let binder: *mut c_void = ptr::null_mut();
-        let named_params = empty_array();
+        let named_params = empty_variant_array();
         let mut return_ptr: *mut VARIANT = ptr::null_mut();
 
         let hr = unsafe {
@@ -412,6 +483,25 @@ impl _Type {
     }
 
     #[inline]
+    pub unsafe fn GetProperty(
+        &self,
+        name: *mut u16,
+        bindingAttr: BindingFlags,
+        pRetVal: *mut *mut _PropertyInfo,
+    ) -> HRESULT {
+        ((*self.vtable).GetProperty)(self as *const _ as *mut _, name, bindingAttr, pRetVal)
+    }
+
+    #[inline]
+    pub unsafe fn GetProperties(
+        &self,
+        bindingAttr: BindingFlags,
+        pRetVal: *mut *mut SAFEARRAY,
+    ) -> HRESULT {
+        ((*self.vtable).GetProperties)(self as *const _ as *mut _, bindingAttr, pRetVal)
+    }
+
+    #[inline]
     pub unsafe fn GetMethod_4(
         &self,
         name: *mut u16,
@@ -440,6 +530,24 @@ impl _Type {
     #[inline]
     pub unsafe fn GetMethods_2(&self, pRetVal: *mut *mut SAFEARRAY) -> HRESULT {
         ((*self.vtable).GetMethods_2)(self as *const _ as *mut _, pRetVal)
+    }
+
+    #[inline]
+    pub unsafe fn GetProperty_6(&self, name: *mut u16, returnType: *mut _Type, pRetVal: *mut *mut _PropertyInfo) -> HRESULT {
+        ((*self.vtable).GetProperty_6)(self as *const _ as *mut _, name, returnType, pRetVal)
+    }
+
+    #[inline]
+    pub unsafe fn GetProperty_7(&self, name: *mut u16, pRetVal: *mut *mut _PropertyInfo) -> HRESULT {
+        ((*self.vtable).GetProperty_7)(self as *const _ as *mut _, name, pRetVal)
+    }
+
+    #[inline]
+    pub unsafe fn GetProperties_2(
+        &self,
+        pRetVal: *mut *mut SAFEARRAY,
+    ) -> HRESULT {
+        ((*self.vtable).GetProperties_2)(self as *const _ as *mut _, pRetVal)
     }
 }
 
@@ -485,3 +593,14 @@ pub const BINDING_FLAGS_EXACT_BINDING: BindingFlags = 65536;
 pub const BINDING_FLAGS_SUPPRESS_CHANGE_TYPE: BindingFlags = 131072;
 pub const BINDING_FLAGS_OPTIONAL_PARAM_BINDING: BindingFlags = 262144;
 pub const BINDING_FLAGS_IGNORE_RETURN: BindingFlags = 16777216;
+
+pub type MemberTypes = u32;
+pub const MEMBER_TYPES_CONSTRUCTOR: MemberTypes = 1;
+pub const MEMBER_TYPES_EVENT: MemberTypes = 2;
+pub const MEMBER_TYPES_FIELD: MemberTypes = 4;
+pub const MEMBER_TYPES_METHOD: MemberTypes = 8;
+pub const MEMBER_TYPES_PROPERTY: MemberTypes = 16;
+pub const MEMBER_TYPES_TYPE_INFO: MemberTypes = 32;
+pub const MEMBER_TYPES_CUSTOM: MemberTypes = 64;
+pub const MEMBER_TYPES_NESTED_TYPE: MemberTypes = 128;
+pub const MEMBER_TYPES_ALL: MemberTypes = 191;

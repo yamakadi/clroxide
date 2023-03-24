@@ -20,11 +20,26 @@ How can I convince Cas to dabble with rust if he can't replicate this!? My work 
   - and likely a few more...
 
 
+## Architecture Constraints
+
+### ClrOxide
+
+`ClrOxide` only works if compiled for `x86_64-pc-windows-gnu` or `x86_64-pc-windows-msvc`.  
+
+Compiling for `i686-pc-windows-gnu` fails due to known issues with rust panic unwinding. It might work with `i686-pc-windows-msvc`, but I haven't tried it myself.
+
+### Assembly
+
+Although I haven't run into this issue myself, there might be cases where you need to specifically compile your assembly as `x64` instead of `Any CPU`.
+
+
 ## Usage
 
 You can find more examples in the [`examples/`](examples) folder.
 
 ### Run an assembly and capture its output
+
+<img width="563" alt="assembly_arch" src="./docs/images/execute_assembly_with_different_architectures.png">
 
 `ClrOxide` will load the CLR in the current process, resolve `mscorlib` and redirect the output for `System.Console`, finally loading and running your executable and returning its output as a string.
 
@@ -72,12 +87,12 @@ fn prepare_args() -> (String, Vec<String>) {
 
 ### Use a custom loader for `mscoree.dll`
 
-We need to load the `CreateInterface` function from `mscoree.dll` to kickstart the CLR. You can provide custom loader by disabling default features.
+We need to load the `CreateInterface` function from `mscoree.dll` to kickstart the CLR. You can provide a custom loader by disabling default features.
 
 First, add `default-features = false` to your dependency declaration.
 
 ```toml
-clroxide = { version = "1.0.1", default-features = false }
+clroxide = { version = "1.0.6", default-features = false }
 ```
 
 And then provide a function with the signature `fn() -> Result<isize, String>` that returns a pointer to the `CreateInterface` function when creating the Clr instance.
@@ -111,3 +126,11 @@ fn main() -> Result<(), String> {
   
 }
 ```
+
+### Patch `System.Environment.Exit` to not exit
+
+<img width="563" alt="assembly_arch" src="./docs/images/patching_system_environment_exit.png">
+
+You can use the building blocks provided by `ClrOxide` to patch `System.Environment.Exit` as described in [Massaging your CLR: Preventing Environment.Exit in In-Process .NET Assemblies](https://www.mdsec.co.uk/2020/08/massaging-your-clr-preventing-environment-exit-in-in-process-net-assemblies) by MDSec.  
+
+You can check the reference implementation at [`examples/patch_exit.rs`](examples/patch_exit.rs). Since this requires using `VirtualProtect` or `NtProtectVirtualMemory`, I don't intend to add this as a feature to `ClrOxide`. 
