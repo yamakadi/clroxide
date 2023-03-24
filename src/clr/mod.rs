@@ -86,6 +86,28 @@ impl Clr {
         })
     }
 
+    pub fn using_runtime_host<T>(
+        &mut self,
+        callback: fn(*mut ICorRuntimeHost) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let context = self.get_context()?;
+        let runtime_host = context.runtime_host;
+
+        callback(runtime_host)
+    }
+
+    pub fn use_app_domain(&mut self, app_domain: *mut _AppDomain) -> Result<(), String> {
+        if self.context.is_none() {
+            return Err("CLR Context has not been initialized".into());
+        }
+
+        let context = self.context.as_mut().unwrap();
+
+        context.app_domain = app_domain;
+
+        Ok(())
+    }
+
     pub fn run(&mut self) -> Result<String, String> {
         self.redirect_output()?;
 

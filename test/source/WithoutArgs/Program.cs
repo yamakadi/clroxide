@@ -9,6 +9,7 @@ namespace WithoutArgs
         public static void Main()
         {
             Console.WriteLine($"[*] Hello World from `{Assembly.GetExecutingAssembly().FullName}`!");
+            Console.WriteLine($"[*] I am running in `{AppDomain.CurrentDomain}`!");
             Console.WriteLine("[*] I have no arguments and live a happy life!");
             Console.WriteLine("[*] Bye!");
 

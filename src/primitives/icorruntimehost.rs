@@ -1,4 +1,5 @@
 use std::{ffi::c_void, ops::Deref, ptr};
+use windows::core::BSTR;
 
 use crate::primitives::{
     Class, IUnknown, IUnknownVtbl, Interface, _AppDomain, GUID, HANDLE, HINSTANCE, HRESULT,
@@ -111,6 +112,53 @@ impl ICorRuntimeHost {
 
         if app_domain.is_null() {
             return Err("Could not retrieve default app domain".into());
+        }
+
+        Ok(app_domain)
+    }
+
+    pub fn create_domain(&self, domain: &str) -> Result<*mut _AppDomain, String> {
+        let domain_name = BSTR::from(domain);
+        let mut unknown_array: *mut IUnknown = ptr::null_mut();
+        let mut unknown: *mut IUnknown = ptr::null_mut();
+
+        let hr = unsafe {
+            (*self).CreateDomain(
+                domain_name.into_raw() as *const _ as *const u16,
+                unknown_array,
+                &mut unknown,
+            )
+        };
+
+        if hr.is_err() {
+            return Err(format!(
+                "Could not create app domain `{}`: {:?}",
+                domain, hr
+            ));
+        }
+
+        if unknown.is_null() {
+            return Err(format!("Could not create app domain `{}`", domain));
+        }
+
+        let mut app_domain: *mut _AppDomain = ptr::null_mut();
+
+        let hr = unsafe {
+            (*unknown).QueryInterface(
+                &_AppDomain::IID,
+                &mut app_domain as *mut *mut _ as *mut *mut c_void,
+            )
+        };
+
+        if hr.is_err() {
+            return Err(format!(
+                "Could not create app domain `{}`: {:?}",
+                domain, hr
+            ));
+        }
+
+        if app_domain.is_null() {
+            return Err(format!("Could not create app domain `{}`", domain));
         }
 
         Ok(app_domain)

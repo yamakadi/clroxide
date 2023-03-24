@@ -9,6 +9,7 @@ namespace WithArgs
         public static void Main(string[] args)
         {
             Console.WriteLine($"[*] Hello World from `{Assembly.GetExecutingAssembly().FullName}`!");
+            Console.WriteLine($"[*] I am running in `{AppDomain.CurrentDomain}`!");
             Console.WriteLine($"[*] I was given {args.Length} arguments");
             
             foreach (var s in args)

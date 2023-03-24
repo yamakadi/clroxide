@@ -8,6 +8,7 @@ namespace WithExit
         public static void Main(string[] args)
         {
             Console.WriteLine($"[*] Hello World from `{Assembly.GetExecutingAssembly().FullName}`!");
+            Console.WriteLine($"[*] I am running in `{AppDomain.CurrentDomain}`!");
             Console.WriteLine("[*] I very much hope to live past `System.Environment.Exit`!");
             Console.WriteLine();
 

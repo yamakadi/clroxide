@@ -85,6 +85,28 @@ fn prepare_args() -> (String, Vec<String>) {
 }
 ```
 
+### Use a custom app domain
+
+<img width="563" alt="assembly_arch" src="./docs/images/using_custom_app_domain.png">
+
+You can update the context to use a custom app domain. This can be useful if you want to avoid `DefaultDomain`. Check out [`examples/custom_app_domain.rs`](examples/custom_app_domain.rs) for more details.
+
+```rust
+...
+
+  let app_domain = clr.using_runtime_host(|host| {
+      let app_domain = unsafe { (*host).create_domain("CustomDomain")? };
+
+      Ok(app_domain)
+  })?;
+
+  clr.use_app_domain(app_domain)?;
+
+...
+```
+
+
+
 ### Use a custom loader for `mscoree.dll`
 
 We need to load the `CreateInterface` function from `mscoree.dll` to kickstart the CLR. You can provide a custom loader by disabling default features.
