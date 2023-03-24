@@ -1,4 +1,7 @@
-use crate::primitives::{BindingFlags, IUnknown, IUnknownVtbl, Interface, _MethodInfo, GUID, HRESULT, _Type, MemberTypes, empty_array};
+use crate::primitives::{
+    BindingFlags, IUnknown, IUnknownVtbl, Interface, MemberTypes, _MethodInfo, _Type, empty_array,
+    GUID, HRESULT,
+};
 use std::{
     ffi::{c_long, c_void},
     ops::Deref,
@@ -155,7 +158,12 @@ impl _PropertyInfo {
     }
 
     #[inline]
-    pub unsafe fn GetValue(&self, obj: VARIANT, index: *mut SAFEARRAY, pRetVal: *mut VARIANT) -> HRESULT {
+    pub unsafe fn GetValue(
+        &self,
+        obj: VARIANT,
+        index: *mut SAFEARRAY,
+        pRetVal: *mut VARIANT,
+    ) -> HRESULT {
         ((*self.vtable).GetValue)(self as *const _ as *mut _, obj, index, pRetVal)
     }
 }

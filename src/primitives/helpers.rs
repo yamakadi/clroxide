@@ -4,7 +4,7 @@ use windows::{
     Win32::System::{
         Com::{
             SAFEARRAY, SAFEARRAYBOUND, VARENUM, VARIANT, VARIANT_0, VARIANT_0_0, VARIANT_0_0_0,
-            VT_ARRAY, VT_BSTR, VT_UI1, VT_VARIANT,
+            VT_ARRAY, VT_BSTR, VT_EMPTY, VT_UI1, VT_UNKNOWN, VT_VARIANT,
         },
         Ole::{
             SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetLBound,
@@ -12,7 +12,6 @@ use windows::{
         },
     },
 };
-use windows::Win32::System::Com::{VT_EMPTY, VT_UNKNOWN};
 
 pub fn prepare_assembly(bytes: &[u8]) -> Result<*mut SAFEARRAY, String> {
     let mut bounds = SAFEARRAYBOUND {
@@ -67,7 +66,7 @@ pub fn empty_variant_array() -> *mut SAFEARRAY {
 }
 
 pub fn wrap_unknown_ptr_in_variant(unknown_ptr: *mut c_void) -> VARIANT {
-    let unknown= unsafe { std::mem::transmute(unknown_ptr) };
+    let unknown = unsafe { std::mem::transmute(unknown_ptr) };
 
     VARIANT {
         Anonymous: VARIANT_0 {

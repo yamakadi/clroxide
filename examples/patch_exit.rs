@@ -1,9 +1,9 @@
-use clroxide::clr::Clr;
-use std::{env, fs, mem::size_of, process::exit, ptr, slice};
-use std::ffi::c_void;
-use windows::Win32::System::Com::{VARIANT, VARIANT_0_0_0};
-use windows::Win32::System::Memory::{PAGE_PROTECTION_FLAGS, PAGE_READWRITE, VirtualProtect};
-use clroxide::primitives::wrap_unknown_ptr_in_variant;
+use clroxide::{clr::Clr, primitives::wrap_unknown_ptr_in_variant};
+use std::{env, ffi::c_void, fs, mem::size_of, process::exit, ptr, slice};
+use windows::Win32::System::{
+    Com::{VARIANT, VARIANT_0_0_0},
+    Memory::{VirtualProtect, PAGE_PROTECTION_FLAGS, PAGE_READWRITE},
+};
 
 fn main() -> Result<(), String> {
     let (path, args) = prepare_args();
@@ -57,8 +57,10 @@ pub unsafe fn run(contents: Vec<u8>, args: Vec<String>) -> Result<String, String
     ptr::write(exit_ptr as *mut u8, 0xc3);
 
     let value = ptr::read(exit_ptr as *mut u8);
-    println!("[+] `System.Environment.Exit` was patched to: `0x{:x}`", value);
-
+    println!(
+        "[+] `System.Environment.Exit` was patched to: `0x{:x}`",
+        value
+    );
 
     if VirtualProtect(base_ptr as *const c_void, 1, old, &mut restored).0 != 1 {
         println!("[!] Unable to change memory permissions at the function pointer back to the original value");

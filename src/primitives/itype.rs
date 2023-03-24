@@ -1,4 +1,7 @@
-use crate::primitives::{IUnknown, IUnknownVtbl, Interface, _Assembly, _MethodInfo, empty_variant_array, GUID, HRESULT, _PropertyInfo};
+use crate::primitives::{
+    IUnknown, IUnknownVtbl, Interface, _Assembly, _MethodInfo, _PropertyInfo, empty_variant_array,
+    GUID, HRESULT,
+};
 use std::{
     ffi::{c_long, c_void},
     ops::Deref,
@@ -154,10 +157,8 @@ pub struct _TypeVtbl {
         name: *mut u16,
         pRetVal: *mut *mut _PropertyInfo,
     ) -> HRESULT,
-    pub GetProperties_2: unsafe extern "system" fn(
-        this: *mut c_void,
-        pRetVal: *mut *mut SAFEARRAY,
-    ) -> HRESULT,
+    pub GetProperties_2:
+        unsafe extern "system" fn(this: *mut c_void, pRetVal: *mut *mut SAFEARRAY) -> HRESULT,
     pub GetNestedTypes_2: *const c_void,
     pub GetNestedType_2: *const c_void,
     pub GetMember_3: *const c_void,
@@ -533,20 +534,26 @@ impl _Type {
     }
 
     #[inline]
-    pub unsafe fn GetProperty_6(&self, name: *mut u16, returnType: *mut _Type, pRetVal: *mut *mut _PropertyInfo) -> HRESULT {
+    pub unsafe fn GetProperty_6(
+        &self,
+        name: *mut u16,
+        returnType: *mut _Type,
+        pRetVal: *mut *mut _PropertyInfo,
+    ) -> HRESULT {
         ((*self.vtable).GetProperty_6)(self as *const _ as *mut _, name, returnType, pRetVal)
     }
 
     #[inline]
-    pub unsafe fn GetProperty_7(&self, name: *mut u16, pRetVal: *mut *mut _PropertyInfo) -> HRESULT {
+    pub unsafe fn GetProperty_7(
+        &self,
+        name: *mut u16,
+        pRetVal: *mut *mut _PropertyInfo,
+    ) -> HRESULT {
         ((*self.vtable).GetProperty_7)(self as *const _ as *mut _, name, pRetVal)
     }
 
     #[inline]
-    pub unsafe fn GetProperties_2(
-        &self,
-        pRetVal: *mut *mut SAFEARRAY,
-    ) -> HRESULT {
+    pub unsafe fn GetProperties_2(&self, pRetVal: *mut *mut SAFEARRAY) -> HRESULT {
         ((*self.vtable).GetProperties_2)(self as *const _ as *mut _, pRetVal)
     }
 }

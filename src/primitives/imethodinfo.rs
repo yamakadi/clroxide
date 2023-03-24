@@ -1,5 +1,6 @@
 use crate::primitives::{
-    empty_variant_array, get_array_length, itype::_Type, IUnknown, IUnknownVtbl, Interface, GUID, HRESULT,
+    empty_variant_array, get_array_length, itype::_Type, IUnknown, IUnknownVtbl, Interface, GUID,
+    HRESULT,
 };
 use std::{
     ffi::{c_long, c_void},
