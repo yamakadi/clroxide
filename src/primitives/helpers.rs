@@ -7,12 +7,12 @@ use windows::{
             VT_ARRAY, VT_BSTR, VT_UI1, VT_VARIANT,
         },
         Ole::{
-            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetUBound,
-            SafeArrayPutElement, SafeArrayUnaccessData,
+            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetLBound,
+            SafeArrayGetUBound, SafeArrayPutElement, SafeArrayUnaccessData,
         },
     },
 };
-use windows::Win32::System::Ole::SafeArrayGetLBound;
+use windows::Win32::System::Com::{VT_EMPTY, VT_UNKNOWN};
 
 pub fn prepare_assembly(bytes: &[u8]) -> Result<*mut SAFEARRAY, String> {
     let mut bounds = SAFEARRAYBOUND {
@@ -54,12 +54,34 @@ pub fn get_array_length(array_ptr: *mut SAFEARRAY) -> i32 {
 
     match upper - lower {
         0 => 0,
-        delta => delta + 1
+        delta => delta + 1,
     }
 }
 
 pub fn empty_array() -> *mut SAFEARRAY {
+    unsafe { SafeArrayCreateVector(VT_EMPTY, 0, 0) }
+}
+
+pub fn empty_variant_array() -> *mut SAFEARRAY {
     unsafe { SafeArrayCreateVector(VT_VARIANT, 0, 0) }
+}
+
+pub fn wrap_unknown_ptr_in_variant(unknown_ptr: *mut c_void) -> VARIANT {
+    let unknown= unsafe { std::mem::transmute(unknown_ptr) };
+
+    VARIANT {
+        Anonymous: VARIANT_0 {
+            Anonymous: ManuallyDrop::new(VARIANT_0_0 {
+                vt: VT_UNKNOWN,
+                wReserved1: 0,
+                wReserved2: 0,
+                wReserved3: 0,
+                Anonymous: VARIANT_0_0_0 {
+                    punkVal: ManuallyDrop::new(Some(unknown)),
+                },
+            }),
+        },
+    }
 }
 
 pub fn wrap_string_in_variant(string: &str) -> VARIANT {

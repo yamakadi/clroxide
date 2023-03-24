@@ -1,6 +1,6 @@
 use clroxide::{
     clr::Clr,
-    primitives::{_Assembly, empty_array, wrap_method_arguments, wrap_string_in_variant},
+    primitives::{_Assembly, empty_variant_array, wrap_method_arguments, wrap_string_in_variant},
 };
 use windows::Win32::System::Com::VARIANT;
 
@@ -73,7 +73,7 @@ pub unsafe fn write_to_buffer(
 
     (*write_line).invoke(arguments, Some(instance.clone()))?;
 
-    let result = (*to_string).invoke(empty_array(), Some(instance.clone()))?;
+    let result = (*to_string).invoke(empty_variant_array(), Some(instance.clone()))?;
 
     let out = unsafe { result.Anonymous.Anonymous.Anonymous.bstrVal.to_string() };
 
