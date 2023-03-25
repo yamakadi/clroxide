@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace WithArgs
 {
@@ -16,6 +18,10 @@ namespace WithArgs
             {
                 Console.WriteLine($"___ ({s.Length}) {s}");
             }
+
+            Console.Error.WriteLine("[!] If I had any errors, they would be here, in `stderr`!");
+
+            Console.WriteLine("[*] Bye!");
 
             Console.WriteLine();
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Threading;
 
 namespace WithExit
 {
@@ -15,6 +16,10 @@ namespace WithExit
             Environment.Exit(-1);
             
             Console.WriteLine("[!] I am still alive!");
+            Console.Error.WriteLine("[!] If I had any errors, they would be here, in `stderr`!");
+
+            Console.WriteLine("[*] Bye!");
+
             Console.WriteLine();
         }
     }
