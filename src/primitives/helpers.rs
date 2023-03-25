@@ -1,8 +1,4 @@
-use std::{
-    ffi::c_void,
-    mem::{size_of, ManuallyDrop},
-    ptr,
-};
+use std::{ffi::c_void, mem::ManuallyDrop, ptr};
 use windows::{
     core::BSTR,
     Win32::{

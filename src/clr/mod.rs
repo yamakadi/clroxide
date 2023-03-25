@@ -1,8 +1,8 @@
 use crate::primitives::{
-    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _MethodInfo,
-    empty_variant_array, wrap_method_arguments, GUID, HRESULT,
+    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, _AppDomain, _MethodInfo, empty_variant_array,
+    wrap_method_arguments, GUID, HRESULT,
 };
-use std::{ffi::c_void, ptr};
+use std::ffi::c_void;
 use windows::Win32::System::Com::VARIANT;
 #[cfg(feature = "default-loader")]
 use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};

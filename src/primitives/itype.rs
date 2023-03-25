@@ -225,7 +225,7 @@ impl _Type {
         parameter_types: Vec<VARIANT>,
     ) -> Result<*mut _ConstructorInfo, String> {
         let mut constructor_ptr: *mut _ConstructorInfo = ptr::null_mut();
-        let mut type_array = wrap_method_arguments(parameter_types)?;
+        let type_array = wrap_method_arguments(parameter_types)?;
         let hr = unsafe { (*self).GetConstructor_3(type_array, &mut constructor_ptr) };
 
         if hr.is_err() {

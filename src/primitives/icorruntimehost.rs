@@ -119,7 +119,7 @@ impl ICorRuntimeHost {
 
     pub fn create_domain(&self, domain: &str) -> Result<*mut _AppDomain, String> {
         let domain_name = BSTR::from(domain);
-        let mut unknown_array: *mut IUnknown = ptr::null_mut();
+        let unknown_array: *mut IUnknown = ptr::null_mut();
         let mut unknown: *mut IUnknown = ptr::null_mut();
 
         let hr = unsafe {

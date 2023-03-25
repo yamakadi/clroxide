@@ -23,7 +23,6 @@ pub use icorruntimehost::*;
 pub use ienumunknown::*;
 pub use imethodinfo::*;
 pub use ipropertyinfo::*;
-pub use istringwriter::*;
 pub use itype::*;
 pub use iunknown::*;
 pub use types::*;
