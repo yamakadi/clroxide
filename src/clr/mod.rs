@@ -1,4 +1,7 @@
-use crate::primitives::{ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _MethodInfo, wrap_method_arguments, GUID, HRESULT, empty_variant_array};
+use crate::primitives::{
+    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _MethodInfo,
+    empty_variant_array, wrap_method_arguments, GUID, HRESULT,
+};
 use std::{ffi::c_void, ptr};
 use windows::Win32::System::Com::VARIANT;
 #[cfg(feature = "default-loader")]
@@ -172,15 +175,19 @@ impl Clr {
 
         let context = self.output_context.as_ref().unwrap();
 
-        unsafe { (*(&context).set_out).invoke(
-            wrap_method_arguments(vec![context.original_stdout.clone()])?,
-            None
-        )? };
+        unsafe {
+            (*(&context).set_out).invoke(
+                wrap_method_arguments(vec![context.original_stdout.clone()])?,
+                None,
+            )?
+        };
 
-        unsafe { (*(&context).set_err).invoke(
-            wrap_method_arguments(vec![context.original_stderr.clone()])?,
-            None
-        )? };
+        unsafe {
+            (*(&context).set_err).invoke(
+                wrap_method_arguments(vec![context.original_stderr.clone()])?,
+                None,
+            )?
+        };
 
         Ok(())
     }
