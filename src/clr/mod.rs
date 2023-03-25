@@ -1,7 +1,4 @@
-use crate::primitives::{
-    ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _MethodInfo,
-    _StringWriter, wrap_method_arguments, GUID, HRESULT,
-};
+use crate::primitives::{ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, IUnknown, Interface, _AppDomain, _MethodInfo, wrap_method_arguments, GUID, HRESULT, empty_variant_array};
 use std::{ffi::c_void, ptr};
 use windows::Win32::System::Com::VARIANT;
 #[cfg(feature = "default-loader")]
@@ -25,8 +22,12 @@ pub struct ClrContext {
 
 pub struct OutputContext {
     pub set_out: *mut _MethodInfo,
+    pub set_err: *mut _MethodInfo,
+    pub to_string: *mut _MethodInfo,
     pub original_stdout: VARIANT,
+    pub original_stderr: VARIANT,
     pub redirected_stdout: VARIANT,
+    pub redirected_stderr: VARIANT,
 }
 
 impl Clr {
@@ -124,27 +125,41 @@ impl Clr {
     pub fn redirect_output(&mut self) -> Result<(), String> {
         let context = self.get_context()?;
 
-        let assembly = unsafe { (*(&context).app_domain).load_library("mscorlib")? };
+        // Get mscorlib assembly
+        let mscorlib = unsafe { (*(&context).app_domain).load_library("mscorlib")? };
 
-        let console = unsafe { (*assembly).get_type("System.Console")? };
+        // Sort out console related types/functions
+        let console = unsafe { (*mscorlib).get_type("System.Console")? };
 
         let get_out = unsafe { (*console).get_method("get_Out")? };
-
         let set_out = unsafe { (*console).get_method("SetOut")? };
+        let get_err = unsafe { (*console).get_method("get_Error")? };
+        let set_err = unsafe { (*console).get_method("SetError")? };
 
-        let old_console = unsafe { (*get_out).invoke_without_args(None)? };
+        let old_out = unsafe { (*get_out).invoke_without_args(None)? };
+        let old_err = unsafe { (*get_err).invoke_without_args(None)? };
+
+        // Sort out string writer related types/functions
+        let string_writer = unsafe { (*mscorlib).get_type("System.IO.StringWriter")? };
+        let to_string = unsafe { (*string_writer).get_method("ToString")? };
 
         let string_writer_instance =
-            unsafe { (*assembly).create_instance("System.IO.StringWriter")? };
+            unsafe { (*mscorlib).create_instance("System.IO.StringWriter")? };
 
         let method_args = wrap_method_arguments(vec![string_writer_instance.clone()])?;
 
+        // Replace stdout and stderr with the same StringWriter instance
         unsafe { (*set_out).invoke(method_args, None)? };
+        unsafe { (*set_err).invoke(method_args, None)? };
 
         self.output_context = Some(OutputContext {
             set_out,
-            original_stdout: old_console,
-            redirected_stdout: string_writer_instance,
+            set_err,
+            to_string,
+            original_stdout: old_out,
+            original_stderr: old_err,
+            redirected_stdout: string_writer_instance.clone(),
+            redirected_stderr: string_writer_instance.clone(),
         });
 
         Ok(())
@@ -157,9 +172,15 @@ impl Clr {
 
         let context = self.output_context.as_ref().unwrap();
 
-        let method_args = wrap_method_arguments(vec![context.original_stdout.clone()])?;
+        unsafe { (*(&context).set_out).invoke(
+            wrap_method_arguments(vec![context.original_stdout.clone()])?,
+            None
+        )? };
 
-        unsafe { (*(&context).set_out).invoke(method_args, None)? };
+        unsafe { (*(&context).set_err).invoke(
+            wrap_method_arguments(vec![context.original_stderr.clone()])?,
+            None
+        )? };
 
         Ok(())
     }
@@ -170,41 +191,13 @@ impl Clr {
         }
 
         let context = self.output_context.as_ref().unwrap();
+        let instance = context.redirected_stdout.clone();
 
-        let dispatchable: &*mut IUnknown = unsafe {
-            std::mem::transmute(
-                context
-                    .redirected_stdout
-                    .Anonymous
-                    .Anonymous
-                    .Anonymous
-                    .pdispVal
-                    .as_ref()
-                    .unwrap(),
-            )
-        };
-        let mut string_writer_ptr: *mut _StringWriter = ptr::null_mut();
-
-        if dispatchable.is_null() {
-            return Err("Could not retrieve StringWriter".into());
-        }
-
-        let hr = unsafe {
-            (**dispatchable).QueryInterface(
-                &_StringWriter::IID,
-                &mut string_writer_ptr as *mut *mut _ as *mut *mut c_void,
-            )
+        let result = unsafe {
+            (*(&context).to_string).invoke(empty_variant_array(), Some(instance.clone()))?
         };
 
-        if hr.is_err() {
-            return Err(format!("Error while retrieving StringWriter: 0x{:x}", hr.0));
-        }
-
-        if string_writer_ptr.is_null() {
-            return Err("Could not retrieve StringWriter".into());
-        }
-
-        Ok(unsafe { (*string_writer_ptr).to_string()? })
+        Ok(unsafe { result.Anonymous.Anonymous.Anonymous.bstrVal.to_string() })
     }
 
     pub fn get_context(&mut self) -> Result<&ClrContext, String> {

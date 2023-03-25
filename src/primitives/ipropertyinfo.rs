@@ -152,6 +152,23 @@ impl _PropertyInfo {
         Ok(return_value)
     }
 
+    pub fn set_value(&self, value: VARIANT, instance: Option<VARIANT>) -> Result<(), String> {
+        let object: VARIANT = match instance {
+            None => unsafe { std::mem::zeroed() },
+            Some(i) => i,
+        };
+
+        let index = empty_array();
+
+        let hr = unsafe { (*self).SetValue(object, value, index) };
+
+        if hr.is_err() {
+            return Err(format!("Could not invoke method: {:?}", hr));
+        }
+
+        Ok(())
+    }
+
     #[inline]
     pub unsafe fn ToString(&self, pRetVal: *mut *mut u16) -> HRESULT {
         ((*self.vtable).ToString)(self as *const _ as *mut _, pRetVal)
@@ -165,6 +182,11 @@ impl _PropertyInfo {
         pRetVal: *mut VARIANT,
     ) -> HRESULT {
         ((*self.vtable).GetValue)(self as *const _ as *mut _, obj, index, pRetVal)
+    }
+
+    #[inline]
+    pub unsafe fn SetValue(&self, obj: VARIANT, val: VARIANT, index: *mut SAFEARRAY) -> HRESULT {
+        ((*self.vtable).SetValue)(self as *const _ as *mut _, obj, val, index)
     }
 }
 

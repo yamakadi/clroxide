@@ -1,14 +1,21 @@
-use std::{ffi::c_void, mem::ManuallyDrop, ptr};
+use std::{
+    ffi::c_void,
+    mem::{size_of, ManuallyDrop},
+    ptr,
+};
 use windows::{
     core::BSTR,
-    Win32::System::{
-        Com::{
-            SAFEARRAY, SAFEARRAYBOUND, VARENUM, VARIANT, VARIANT_0, VARIANT_0_0, VARIANT_0_0_0,
-            VT_ARRAY, VT_BSTR, VT_EMPTY, VT_UI1, VT_UNKNOWN, VT_VARIANT,
-        },
-        Ole::{
-            SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetLBound,
-            SafeArrayGetUBound, SafeArrayPutElement, SafeArrayUnaccessData,
+    Win32::{
+        Foundation::VARIANT_BOOL,
+        System::{
+            Com::{
+                SAFEARRAY, SAFEARRAYBOUND, VARENUM, VARIANT, VARIANT_0, VARIANT_0_0, VARIANT_0_0_0,
+                VT_ARRAY, VT_BOOL, VT_BSTR, VT_EMPTY, VT_I8, VT_UI1, VT_UNKNOWN, VT_VARIANT,
+            },
+            Ole::{
+                SafeArrayAccessData, SafeArrayCreate, SafeArrayCreateVector, SafeArrayGetElement,
+                SafeArrayGetLBound, SafeArrayGetUBound, SafeArrayPutElement, SafeArrayUnaccessData,
+            },
         },
     },
 };
@@ -78,6 +85,36 @@ pub fn wrap_unknown_ptr_in_variant(unknown_ptr: *mut c_void) -> VARIANT {
                 Anonymous: VARIANT_0_0_0 {
                     punkVal: ManuallyDrop::new(Some(unknown)),
                 },
+            }),
+        },
+    }
+}
+
+pub fn wrap_bool_in_variant(value: bool) -> VARIANT {
+    VARIANT {
+        Anonymous: VARIANT_0 {
+            Anonymous: ManuallyDrop::new(VARIANT_0_0 {
+                vt: VT_BOOL,
+                wReserved1: 0,
+                wReserved2: 0,
+                wReserved3: 0,
+                Anonymous: VARIANT_0_0_0 {
+                    boolVal: VARIANT_BOOL::from(value),
+                },
+            }),
+        },
+    }
+}
+
+pub fn wrap_i64_in_variant(value: i64) -> VARIANT {
+    VARIANT {
+        Anonymous: VARIANT_0 {
+            Anonymous: ManuallyDrop::new(VARIANT_0_0 {
+                vt: VT_I8,
+                wReserved1: 0,
+                wReserved2: 0,
+                wReserved3: 0,
+                Anonymous: VARIANT_0_0_0 { llVal: value },
             }),
         },
     }
@@ -160,4 +197,26 @@ pub fn wrap_method_arguments(arguments: Vec<VARIANT>) -> Result<*mut SAFEARRAY, 
     }
 
     Ok(variant_array_ptr)
+}
+
+pub fn unpack_byte_array(safe_array_ptr: *mut SAFEARRAY) -> Result<Vec<u8>, String> {
+    let ubound = unsafe { SafeArrayGetUBound(safe_array_ptr, 1) }.unwrap_or(0);
+    let mut results: Vec<u8> = vec![];
+
+    for i in 0..ubound {
+        let indices: [i32; 1] = [i as _];
+        let mut variant: u8 = 0;
+        let pv = &mut variant as *mut _ as *mut c_void;
+
+        match unsafe { SafeArrayGetElement(safe_array_ptr, indices.as_ptr(), pv) } {
+            Ok(_) => {},
+            Err(e) => return Err(format!("Could not access safe array: {:?}", e.code())),
+        }
+
+        if !pv.is_null() {
+            results.push(variant);
+        }
+    }
+
+    Ok(results)
 }

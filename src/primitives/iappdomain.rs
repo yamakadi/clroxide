@@ -13,6 +13,9 @@ pub struct _AppDomain {
     pub vtable: *const _AppDomainVtbl,
 }
 
+unsafe impl Sync for _AppDomain {}
+unsafe impl Send for _AppDomain {}
+
 #[repr(C)]
 pub struct _AppDomainVtbl {
     pub parent: IUnknownVtbl,

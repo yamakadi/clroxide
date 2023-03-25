@@ -1,6 +1,6 @@
 use crate::primitives::{
-    IUnknown, IUnknownVtbl, Interface, _Assembly, _MethodInfo, _PropertyInfo, empty_variant_array,
-    GUID, HRESULT,
+    IUnknown, IUnknownVtbl, Interface, _Assembly, _ConstructorInfo, _MethodInfo, _PropertyInfo,
+    empty_variant_array, wrap_method_arguments, GUID, HRESULT,
 };
 use std::{
     ffi::{c_long, c_void},
@@ -55,7 +55,11 @@ pub struct _TypeVtbl {
     pub GetArrayRank: *const c_void,
     pub get_BaseType:
         unsafe extern "system" fn(this: *mut c_void, pRetVal: *mut *mut _Type) -> HRESULT,
-    pub GetConstructors: *const c_void,
+    pub GetConstructors: unsafe extern "system" fn(
+        this: *mut c_void,
+        bindingAttr: BindingFlags,
+        pRetVal: *mut *mut SAFEARRAY,
+    ) -> HRESULT,
     pub GetInterface: *const c_void,
     pub GetInterfaces: *const c_void,
     pub FindInterfaces: *const c_void,
@@ -115,8 +119,13 @@ pub struct _TypeVtbl {
     ) -> HRESULT,
     pub GetConstructor: *const c_void,
     pub GetConstructor_2: *const c_void,
-    pub GetConstructor_3: *const c_void,
-    pub GetConstructors_2: *const c_void,
+    pub GetConstructor_3: unsafe extern "system" fn(
+        this: *mut c_void,
+        types: *mut SAFEARRAY,
+        pRetVal: *mut *mut _ConstructorInfo,
+    ) -> HRESULT,
+    pub GetConstructors_2:
+        unsafe extern "system" fn(this: *mut c_void, pRetVal: *mut *mut SAFEARRAY) -> HRESULT,
     pub get_TypeInitializer: *const c_void,
     pub GetMethod_3: *const c_void,
     pub GetMethod_4: unsafe extern "system" fn(
@@ -209,6 +218,77 @@ impl _Type {
         }
 
         Ok(buffer.to_string())
+    }
+
+    pub fn get_constructor(
+        &self,
+        parameter_types: Vec<VARIANT>,
+    ) -> Result<*mut _ConstructorInfo, String> {
+        let mut constructor_ptr: *mut _ConstructorInfo = ptr::null_mut();
+        let mut type_array = wrap_method_arguments(parameter_types)?;
+        let hr = unsafe { (*self).GetConstructor_3(type_array, &mut constructor_ptr) };
+
+        if hr.is_err() {
+            return Err(format!("Error while retrieving constructor: 0x{:x}", hr.0));
+        }
+
+        if constructor_ptr.is_null() {
+            return Err("Could not retrieve constructor".into());
+        }
+
+        Ok(constructor_ptr)
+    }
+
+    pub fn get_constructor_with_signature(
+        &self,
+        signature: &str,
+    ) -> Result<*mut _ConstructorInfo, String> {
+        let constructors = self.get_constructors()?;
+
+        for constructor in constructors {
+            let constructor_name = unsafe { (*constructor).to_string()? };
+
+            if &constructor_name == signature {
+                return Ok(constructor);
+            }
+        }
+
+        Err(format!(
+            "Could not find a constructor with the given signature: {}",
+            signature
+        ))
+    }
+
+    pub fn get_constructors(&self) -> Result<Vec<*mut _ConstructorInfo>, String> {
+        let mut results: Vec<*mut _ConstructorInfo> = vec![];
+
+        let mut safe_array_ptr: *mut SAFEARRAY =
+            unsafe { SafeArrayCreateVector(VT_UNKNOWN, 0, 255) };
+
+        let hr = unsafe { (*self).GetConstructors_2(&mut safe_array_ptr) };
+
+        if hr.is_err() {
+            return Err(format!("Error while retrieving constructors: 0x{:x}", hr.0));
+        }
+
+        let ubound = unsafe { SafeArrayGetUBound(safe_array_ptr, 1) }.unwrap_or(0);
+
+        for i in 0..ubound {
+            let indices: [i32; 1] = [i as _];
+            let mut variant: *mut _ConstructorInfo = ptr::null_mut();
+            let pv = &mut variant as *mut _ as *mut c_void;
+
+            match unsafe { SafeArrayGetElement(safe_array_ptr, indices.as_ptr(), pv) } {
+                Ok(_) => {},
+                Err(e) => return Err(format!("Could not access safe array: {:?}", e.code())),
+            }
+
+            if !pv.is_null() {
+                results.push(variant)
+            }
+        }
+
+        Ok(results)
     }
 
     pub fn get_method(&self, name: &str) -> Result<*mut _MethodInfo, String> {
@@ -555,6 +635,20 @@ impl _Type {
     #[inline]
     pub unsafe fn GetProperties_2(&self, pRetVal: *mut *mut SAFEARRAY) -> HRESULT {
         ((*self.vtable).GetProperties_2)(self as *const _ as *mut _, pRetVal)
+    }
+
+    #[inline]
+    pub unsafe fn GetConstructor_3(
+        &self,
+        types: *mut SAFEARRAY,
+        pRetVal: *mut *mut _ConstructorInfo,
+    ) -> HRESULT {
+        ((*self.vtable).GetConstructor_3)(self as *const _ as *mut _, types, pRetVal)
+    }
+
+    #[inline]
+    pub unsafe fn GetConstructors_2(&self, pRetVal: *mut *mut SAFEARRAY) -> HRESULT {
+        ((*self.vtable).GetConstructors_2)(self as *const _ as *mut _, pRetVal)
     }
 }
 
