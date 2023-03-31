@@ -109,7 +109,6 @@ impl ICLRMetaHost {
             return Err("Could not enumerate installed runtimes.".into());
         }
 
-        let mut hmri: Vec<*mut ICLRRuntimeInfo> = vec![];
         let mut hmri: HashMap<RuntimeVersion, *mut ICLRRuntimeInfo> = HashMap::new();
 
         loop {

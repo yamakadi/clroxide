@@ -135,13 +135,13 @@ impl ICLRRuntimeInfo {
     }
 
     pub fn get_version(&self) -> Result<RuntimeVersion, String> {
-        let mut dummy = ptr::null_mut();
+        let dummy = ptr::null_mut();
         let mut length = 0;
 
         let _ = unsafe { (*self).GetVersionString(dummy, &mut length) };
 
         let mut buffer: Vec<u16> = Vec::with_capacity(length as usize);
-        let mut version = PWSTR(buffer.as_mut_ptr());
+        let version = PWSTR(buffer.as_mut_ptr());
 
         let hr = unsafe { (*self).GetVersionString(version.as_ptr(), &mut length) };
 
