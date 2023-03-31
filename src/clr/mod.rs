@@ -1,6 +1,6 @@
 use crate::primitives::{
     ICLRMetaHost, ICLRRuntimeInfo, ICorRuntimeHost, _AppDomain, _MethodInfo, empty_variant_array,
-    wrap_method_arguments, GUID, HRESULT,
+    wrap_method_arguments, RuntimeVersion, GUID, HRESULT,
 };
 use std::ffi::c_void;
 use windows::Win32::System::Com::VARIANT;
@@ -13,6 +13,7 @@ pub struct Clr {
     create_interface: isize,
     context: Option<ClrContext>,
     output_context: Option<OutputContext>,
+    version: RuntimeVersion,
 }
 
 pub struct ClrContext {
@@ -44,11 +45,30 @@ impl Clr {
             create_interface,
             context: None,
             output_context: None,
+            version: RuntimeVersion::V4,
         })
     }
 
     #[cfg(feature = "default-loader")]
-    pub fn context_only() -> Result<Clr, String> {
+    pub fn new_with_runtime(
+        contents: Vec<u8>,
+        arguments: Vec<String>,
+        version: RuntimeVersion,
+    ) -> Result<Clr, String> {
+        let create_interface = load_function("mscoree.dll", "CreateInterface")?;
+
+        Ok(Clr {
+            contents,
+            arguments,
+            create_interface,
+            context: None,
+            output_context: None,
+            version,
+        })
+    }
+
+    #[cfg(feature = "default-loader")]
+    pub fn context_only(version: Option<RuntimeVersion>) -> Result<Clr, String> {
         let create_interface = load_function("mscoree.dll", "CreateInterface")?;
 
         Ok(Clr {
@@ -57,6 +77,7 @@ impl Clr {
             create_interface,
             context: None,
             output_context: None,
+            version: version.unwrap_or(RuntimeVersion::V4),
         })
     }
 
@@ -74,11 +95,34 @@ impl Clr {
             create_interface,
             context: None,
             output_context: None,
+            version: RuntimeVersion::V4,
         })
     }
 
     #[cfg(not(feature = "default-loader"))]
-    pub fn context_only(load_function: fn() -> Result<isize, String>) -> Result<Clr, String> {
+    pub fn new_with_runtime(
+        contents: Vec<u8>,
+        arguments: Vec<String>,
+        version: RuntimeVersion,
+        load_function: fn() -> Result<isize, String>,
+    ) -> Result<Clr, String> {
+        let create_interface = load_function()?;
+
+        Ok(Clr {
+            contents,
+            arguments,
+            create_interface,
+            context: None,
+            output_context: None,
+            version,
+        })
+    }
+
+    #[cfg(not(feature = "default-loader"))]
+    pub fn context_only(
+        load_function: fn() -> Result<isize, String>,
+        version: Option<RuntimeVersion>,
+    ) -> Result<Clr, String> {
         let create_interface = load_function()?;
 
         Ok(Clr {
@@ -87,6 +131,7 @@ impl Clr {
             create_interface,
             context: None,
             output_context: None,
+            version: version.unwrap_or(RuntimeVersion::V4),
         })
     }
 
@@ -213,10 +258,14 @@ impl Clr {
         }
 
         let host = self.get_clr_host()?;
-        let runtime_info = unsafe { (*host).get_first_available_runtime()? };
+        let runtime_info = unsafe { (*host).get_first_available_runtime(Some(self.version))? };
         let runtime_host = unsafe { (*runtime_info).get_runtime_host()? };
 
-        unsafe { (*runtime_host).start()? };
+        unsafe {
+            if (*runtime_info).can_be_loaded()? && !(*runtime_info).has_started()? {
+                (*runtime_host).start()?;
+            }
+        };
 
         let app_domain = unsafe { (*runtime_host).get_default_domain()? };
 

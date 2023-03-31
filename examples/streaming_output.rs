@@ -12,7 +12,7 @@ fn main() -> Result<(), String> {
     let (path, args) = prepare_args();
     let contents = fs::read(path).expect("Unable to read file");
 
-    let mut clr = Clr::context_only()?;
+    let mut clr = Clr::context_only(None)?;
     let mut context = clr.get_context()?;
     let app_domain = context.app_domain;
     let mscorlib = unsafe { (*app_domain).load_library("mscorlib")? };

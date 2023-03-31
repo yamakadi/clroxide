@@ -18,7 +18,7 @@ fn main() -> Result<(), String> {
 }
 
 pub unsafe fn run(contents: Vec<u8>, args: Vec<String>) -> Result<String, String> {
-    let mut clr = Clr::context_only()?;
+    let mut clr = Clr::context_only(None)?;
 
     clr.redirect_output()?;
 

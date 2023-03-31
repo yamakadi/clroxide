@@ -1,7 +1,8 @@
 use crate::primitives::{
-    Class, ICLRRuntimeInfo, IEnumUnknown, IUnknown, IUnknownVtbl, Interface, GUID, HRESULT,
+    Class, ICLRRuntimeInfo, IEnumUnknown, IUnknown, IUnknownVtbl, Interface, RuntimeVersion, GUID,
+    HRESULT,
 };
-use std::{ffi::c_void, ops::Deref, ptr};
+use std::{collections::HashMap, ffi::c_void, ops::Deref, ptr};
 
 #[repr(C)]
 pub struct ICLRMetaHostVtbl {
@@ -53,22 +54,32 @@ impl ICLRMetaHost {
         return Ok(ppv);
     }
 
-    pub fn get_first_available_runtime(&self) -> Result<*mut ICLRRuntimeInfo, String> {
+    pub fn get_first_available_runtime(
+        &self,
+        prefer_version: Option<RuntimeVersion>,
+    ) -> Result<*mut ICLRRuntimeInfo, String> {
         let runtimes = self.get_installed_runtimes()?;
 
-        if runtimes.len() > 0 {
-            Ok(runtimes[0])
-        } else {
-            Err("Could not find any runtimes".into())
+        if let Some(prefer_version) = prefer_version {
+            if let Some(runtime) = runtimes.get(&prefer_version) {
+                return Ok(*runtime);
+            }
         }
+
+        for runtime in runtimes.values() {
+            return Ok(*runtime);
+        }
+
+        Err("Could not find any runtimes".into())
     }
 
-    pub fn get_runtime(&self, version: *mut u16) -> Result<*mut ICLRRuntimeInfo, String> {
+    pub fn get_runtime(&self, version: RuntimeVersion) -> Result<*mut ICLRRuntimeInfo, String> {
+        let version_ptr = version.clone().to_bstr();
         let mut ppv: *mut ICLRRuntimeInfo = ptr::null_mut();
 
         let hr = unsafe {
             (*self).GetRuntime(
-                version,
+                version_ptr.into_raw() as *mut _,
                 &ICLRRuntimeInfo::IID,
                 &mut ppv as *mut *mut _ as *mut *mut c_void,
             )
@@ -76,17 +87,22 @@ impl ICLRMetaHost {
 
         return match hr.is_ok() {
             true => Ok(ppv),
-            false => Err(format!("{:?}", hr)),
+            false => Err(format!(
+                "Could not find a runtime for version `{}`: {:?}",
+                version, hr
+            )),
         };
     }
 
-    pub fn get_installed_runtimes(&self) -> Result<Vec<*mut ICLRRuntimeInfo>, String> {
+    pub fn get_installed_runtimes(
+        &self,
+    ) -> Result<HashMap<RuntimeVersion, *mut ICLRRuntimeInfo>, String> {
         let mut ieu_ptr: *mut IEnumUnknown = ptr::null_mut();
 
         let hr = unsafe { (*self).EnumerateInstalledRuntimes(&mut ieu_ptr) };
 
         if hr.is_err() {
-            return Err(format!("{:?}", hr));
+            return Err(format!("Could not enumerate installed runtimes: {:?}", hr));
         }
 
         if ieu_ptr.is_null() {
@@ -94,6 +110,7 @@ impl ICLRMetaHost {
         }
 
         let mut hmri: Vec<*mut ICLRRuntimeInfo> = vec![];
+        let mut hmri: HashMap<RuntimeVersion, *mut ICLRRuntimeInfo> = HashMap::new();
 
         loop {
             let mut iu_ptr: *mut IUnknown = ptr::null_mut();
@@ -118,7 +135,9 @@ impl ICLRMetaHost {
                 break;
             }
 
-            hmri.push(ri_ptr);
+            let version = unsafe { (*ri_ptr).get_version()? };
+
+            hmri.insert(version, ri_ptr);
         }
 
         Ok(hmri)

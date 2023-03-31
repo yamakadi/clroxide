@@ -1,7 +1,48 @@
 use crate::primitives::{
     Class, ICorRuntimeHost, IUnknown, IUnknownVtbl, Interface, BOOL, GUID, HANDLE, HRESULT,
 };
-use std::{ffi::c_void, ops::Deref, ptr};
+use std::{ffi::c_void, fmt::Display, ops::Deref, ptr};
+use windows::core::{BSTR, PWSTR};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum RuntimeVersion {
+    V2,
+    V3,
+    V4,
+    UNKNOWN,
+}
+
+impl RuntimeVersion {
+    pub fn to_str(&self) -> &str {
+        match self {
+            RuntimeVersion::V2 => "v2.0.50727",
+            RuntimeVersion::V3 => "v3.0",
+            RuntimeVersion::V4 => "v4.0.30319",
+            RuntimeVersion::UNKNOWN => "UNKNOWN",
+        }
+    }
+
+    pub fn to_bstr(&self) -> BSTR {
+        BSTR::from(self.to_str())
+    }
+}
+
+impl From<String> for RuntimeVersion {
+    fn from(version: String) -> Self {
+        match version.as_str() {
+            "v2.0.50727" => RuntimeVersion::V2,
+            "v3.0" => RuntimeVersion::V3,
+            "v4.0.30319" => RuntimeVersion::V4,
+            _ => RuntimeVersion::UNKNOWN,
+        }
+    }
+}
+
+impl Display for RuntimeVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_str())
+    }
+}
 
 #[repr(C)]
 pub struct ICLRRuntimeInfo {
@@ -93,8 +134,49 @@ impl ICLRRuntimeInfo {
         return Ok(ppv);
     }
 
-    pub fn has_started() -> Result<bool, String> {
-        todo!()
+    pub fn get_version(&self) -> Result<RuntimeVersion, String> {
+        let mut dummy = ptr::null_mut();
+        let mut length = 0;
+
+        let _ = unsafe { (*self).GetVersionString(dummy, &mut length) };
+
+        let mut buffer: Vec<u16> = Vec::with_capacity(length as usize);
+        let mut version = PWSTR(buffer.as_mut_ptr());
+
+        let hr = unsafe { (*self).GetVersionString(version.as_ptr(), &mut length) };
+
+        if hr.is_err() {
+            return Err(format!("Failed while running `GetVersionString`: {:?}", hr));
+        }
+
+        Ok(RuntimeVersion::from(unsafe {
+            version.to_string().unwrap_or_default()
+        }))
+    }
+
+    pub fn can_be_loaded(&self) -> Result<bool, String> {
+        let mut loadable = BOOL(0);
+
+        let hr = unsafe { (*self).IsLoadable(&mut loadable) };
+
+        if hr.is_err() {
+            return Err(format!("Failed while running `IsLoadable`: {:?}", hr));
+        }
+
+        Ok(loadable.0 > 0)
+    }
+
+    pub fn has_started(&self) -> Result<bool, String> {
+        let mut startup_flags = 0;
+        let mut started = BOOL(0);
+
+        let hr = unsafe { (*self).IsStarted(&mut started, &mut startup_flags) };
+
+        if hr.is_err() {
+            return Err(format!("Failed while running `IsStarted`: {:?}", hr));
+        }
+
+        Ok(started.0 > 0)
     }
 
     #[inline]
