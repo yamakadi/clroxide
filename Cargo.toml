@@ -8,7 +8,7 @@ documentation = "https://docs.rs/clroxide"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/yamakadi/clroxide"
-version = "1.1.0"
+version = "1.1.1"
 exclude = ["/test"]
 
 [lib]
