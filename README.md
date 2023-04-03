@@ -32,6 +32,11 @@ Compiling for `i686-pc-windows-gnu` fails due to known issues with rust panic un
 
 Although I haven't run into this issue myself, there might be cases where you need to specifically compile your assembly as `x64` instead of `Any CPU`.
 
+## Design Constraints
+
+`windows` crate had no type definitions for `mscoree.dll` until a few weeks ago. It looks like the definitions for `mscoree.dll` have made their way into the `windows` crate in version `0.48.0`. However, these definitions don't appear to be working correctly. Just as an example; a vtable entry that should point to a function within the CLR thread (let's say at address `0x7ffef16821a0`), somehow returns an address widely out of range (`0x750003cac9053b48`).
+
+The `windows` crate does a lot of fancy stuff with vtables for safety, but ironically, these are likely causing the access violation above. Or something else is happening... I intended to use the official definitions for V2 to offload the maintenance burden, but this is a dealbreaker.
 
 ## Usage
 
