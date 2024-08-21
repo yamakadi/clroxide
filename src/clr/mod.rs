@@ -170,6 +170,15 @@ impl Clr {
         self.get_redirected_output()
     }
 
+    pub fn run_no_redirect(&mut self) -> Result<String, String> {
+        let context = self.get_context()?;
+        let assembly = unsafe { (*(&context).app_domain).load_assembly(&self.contents)? };
+
+        unsafe { (*assembly).run_entrypoint(&self.arguments)? };
+        
+        Ok("".to_string())
+    }
+
     pub fn redirect_output(&mut self) -> Result<(), String> {
         let context = self.get_context()?;
 
